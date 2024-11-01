@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express'; import connection from '../database';
 import { ResultSetHeader } from 'mysql2';
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken';
 
 const router = Router()
 
@@ -34,20 +36,29 @@ router.get('/usuarios/:id', (req: Request, res: Response) => {
 
 
 
-router.post('/usuarios', (req: Request, res: Response) => {
-    const {nome, email, senha} = req.body;
-    connection.query('INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)',
-        [nome, email, senha],
+router.post('/usuarios', async (req: Request, res: Response) => {
+    const { nome, email, senha } = req.body;
+  
+    try {
+      const hashedSenha = await bcrypt.hash(senha, 10);
+  
+      connection.query('INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)',
+        [nome, email, hashedSenha],
         (err, results) => {
-            if (err) {
-                console.error('Erro ao adicionar usuário: ', err);
-                res.status(500).send('Erro ao adicionar usuário');
-                return;
-            }
-            res.status(201).send('Sucesso ao adicionar usuário');
+          if (err) {
+            console.error('Erro ao adicionar usuário: ', err);
+            res.status(500).send('Erro ao adicionar usuário');
+            return;
+          }
+          res.status(201).send('Sucesso ao adicionar usuário');
         }
-    )
-});
+      );
+    } catch (error) {
+      console.error('Erro ao processar a requisição:', error);
+      res.status(500).send('Erro ao processar a requisição');
+    }
+  });
+  
 
 router.delete('/usuarios/:id', (req: Request, res: Response) => {
     const { id } = req.params;
@@ -84,6 +95,36 @@ router.put('/usuarios/:id', (req: Request, res: Response) => {
         }
     )
 });
+
+//==========================================================================================================
+
+router.post('/login', (req: Request, res: Response) => {
+    const { email, senha } = req.body;
+  
+    connection.query('SELECT * FROM usuarios WHERE email = ?', [email], async (err, results: any) => {
+      if (err) {
+        console.error('Erro ao buscar usuário: ', err);
+        res.status(500).send('Erro ao buscar usuário');
+        return;
+      }
+  
+      if (Array.isArray(results) && results.length > 0) {
+        const usuario = results[0];
+        const senhaValida = await bcrypt.compare(senha, usuario.senha);
+  
+        if (!senhaValida) {
+          res.status(401).send('Senha inválida');
+          return;
+        }
+  
+        const token = jwt.sign({ id: usuario.id }, 'secreta'); // Use uma chave secreta segura no seu ambiente de produção
+        res.json({ token });
+      } else {
+        res.status(404).send('Usuário não encontrado');
+      }
+    });
+  });
+  
 
 
 
