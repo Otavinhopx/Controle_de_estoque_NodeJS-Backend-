@@ -85,7 +85,7 @@ router.put('/produtos/:id', (req: Request, res: Response) => {
     )
 });
 
-router.put('/produtos/:id/quantidade', (req: Request, res: Response) => {
+router.patch('/produtos/:id/quantidade', (req: Request, res: Response) => {
     const {id} = req.params;
     const {quantidade} = req.body;
     if (quantidade !== undefined) { if (quantidade < 1) { 
