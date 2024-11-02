@@ -117,7 +117,7 @@ router.post('/login', (req: Request, res: Response) => {
           return;
         }
   
-        const token = jwt.sign({ id: usuario.id }, 'secreta'); // Use uma chave secreta segura no seu ambiente de produção
+        const token = jwt.sign({ id: usuario.id }, 'secreta'); 
         res.json({ token });
       } else {
         res.status(404).send('Usuário não encontrado');
